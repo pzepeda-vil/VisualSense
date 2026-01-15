@@ -18,7 +18,7 @@ const ANALYSIS_SCHEMA = {
           aesthetic: { type: Type.STRING },
           qualityScore: { type: Type.NUMBER },
           description: { type: Type.STRING },
-          howToImprove: { type: Type.STRING, description: "Actionable technical tips to improve this specific image's quality or impact." }
+          howToImprove: { type: Type.STRING, description: "Highly technical photography or post-processing advice." }
         },
         required: ["id", "dominantColors", "composition", "lighting", "mood", "aesthetic", "qualityScore", "description", "howToImprove"]
       }
@@ -32,7 +32,7 @@ const ANALYSIS_SCHEMA = {
         layoutAnalysis: { type: Type.STRING },
         marketingActionables: { type: Type.ARRAY, items: { type: Type.STRING } },
         overallAesthetic: { type: Type.STRING },
-        visualRoadmap: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Step-by-step optimization roadmap for the brand's visual identity." }
+        visualRoadmap: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Specific 5-step roadmap to professionalize the site's look." }
       },
       required: ["brandConsistency", "creativeStyle", "typographyNotes", "layoutAnalysis", "marketingActionables", "overallAesthetic", "visualRoadmap"]
     }
@@ -54,10 +54,16 @@ export async function analyzeProductPage(
   }));
 
   const prompt = `
-    Perform a professional audit on these images from ${pageUrl}.
-    1. For each image, provide detailed visual attributes and a specific "How to Improve" tip focusing on photography or editing.
-    2. Provide a 'Visual Roadmap' (an array of strings) that gives the merchant 5 clear steps to improve their brand aesthetic.
-    3. Analyze typography and layout based on visual cues in the images and surrounding patterns.
+    Role: Senior Art Director & E-commerce Strategy Expert.
+    Task: Conduct a high-fidelity visual audit of the provided assets from ${pageUrl}.
+    
+    Audit Guidelines for REAL DATA:
+    1. For "Lighting", describe the technical setup (e.g., 'Soft-box 45-degree key light', 'Natural overcast lighting').
+    2. For "Composition", mention specific photographic rules (e.g., 'Rule of thirds compliant', 'Central focus with shallow depth of field').
+    3. For "How to Improve", provide one specific technical change (e.g., 'Increase contrast in the mid-tones to make the texture pop' or 'Use a wider aperture to blur the background distracting elements').
+    4. For "Visual Roadmap", provide 5 sequential, actionable steps the merchant should take in the next 30 days to increase conversion through design.
+    5. The "Overall Aesthetic" should capture the emotional value proposition.
+
     Return the response as JSON matching the provided schema.
   `;
 
@@ -98,10 +104,10 @@ export async function proxyFetchHtml(url: string): Promise<string> {
   const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
   try {
     const response = await fetch(proxyUrl);
-    if (!response.ok) throw new Error(`Status ${response.status}: Site is blocking the proxy.`);
+    if (!response.ok) throw new Error(`Status ${response.status}: Site is blocking the audit.`);
     return await response.text();
   } catch (error: any) {
-    throw new Error("Connection Blocked: Ensure your ad-blocker is off and the URL is correct.");
+    throw new Error("Connection Blocked: Please ensure you aren't using a VPN or strict ad-blocker that interferes with the proxy.");
   }
 }
 
