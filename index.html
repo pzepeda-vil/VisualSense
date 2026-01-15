@@ -16,34 +16,33 @@
   <script>
     window.process = { env: { NODE_ENV: 'production' } };
     
-    // Improved diagnostic logging to identify ESM resolution issues
+    // Improved diagnostic logging
     window.addEventListener('error', function(event) {
-      console.error('Boot Error:', event.error || event.message);
+      console.error('System Error Captured:', event.error || event.message);
       const errorDisplay = document.getElementById('error-diagnostic');
       if (errorDisplay) {
         errorDisplay.classList.remove('hidden');
         const msg = document.createElement('div');
         msg.className = 'text-rose-500 font-mono text-[10px] mt-2 border-t border-slate-800 pt-2 break-all';
-        msg.textContent = '> System Error: ' + (event.message || 'Module conflict');
+        msg.textContent = '> Runtime Fault: ' + (event.message || 'Check browser console');
         errorDisplay.appendChild(msg);
       }
     });
 
-    // Fail-safe check: reveal diagnostic panel if mounting fails
+    // Reveal diagnostic panel if mounting takes too long
     setTimeout(() => {
       const root = document.getElementById('root');
-      const spinner = root?.querySelector('.animate-spin');
-      if (spinner) {
+      if (root && root.innerHTML.includes('animate-spin')) {
         const errorDisplay = document.getElementById('error-diagnostic');
         if (errorDisplay) {
           errorDisplay.classList.remove('hidden');
           const msg = document.createElement('div');
           msg.className = 'text-amber-500 font-mono text-[10px] mt-2 border-t border-slate-800 pt-2';
-          msg.textContent = '> Connection taking longer than expected. Check Console for ESM conflicts.';
+          msg.textContent = '> Initialization delay detected. This usually indicates an asset loading error or dependency conflict.';
           errorDisplay.appendChild(msg);
         }
       }
-    }, 5000);
+    }, 6000);
   </script>
 
   <style>
@@ -67,8 +66,8 @@
     "react": "https://esm.sh/react@19.0.0",
     "react-dom": "https://esm.sh/react-dom@19.0.0",
     "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
-    "recharts": "https://esm.sh/recharts@2.15.0?deps=react@19.0.0,react-dom@19.0.0",
-    "lucide-react": "https://esm.sh/lucide-react@0.460.0?deps=react@19.0.0,react-dom@19.0.0",
+    "recharts": "https://esm.sh/recharts@2.15.0?external=react,react-dom",
+    "lucide-react": "https://esm.sh/lucide-react@0.460.0?external=react,react-dom",
     "@google/genai": "https://esm.sh/@google/genai@1.3.0",
     "jspdf": "https://esm.sh/jspdf@2.5.2",
     "html2canvas": "https://esm.sh/html2canvas@1.4.1",
