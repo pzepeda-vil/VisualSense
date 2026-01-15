@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { AnalysisResult } from "../types";
+import { AnalysisResult } from "../types.ts";
 
 const ANALYSIS_SCHEMA = {
   type: Type.OBJECT,
@@ -44,7 +44,8 @@ export async function analyzeProductPage(
   pageUrl: string, 
   images: { url: string; base64: string }[]
 ): Promise<AnalysisResult> {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  const apiKey = (typeof process !== 'undefined' && process.env?.API_KEY) || '';
+  const ai = new GoogleGenAI({ apiKey });
 
   const imageParts = images.map((img) => ({
     inlineData: {

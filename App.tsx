@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
-import { analyzeProductPage, proxyFetchHtml, imageToBase64 } from './services/geminiService';
-import { AnalysisResult } from './types';
-import ReportView from './components/ReportView';
+import { analyzeProductPage, proxyFetchHtml, imageToBase64 } from './services/geminiService.ts';
+import { AnalysisResult } from './types.ts';
+import ReportView from './components/ReportView.tsx';
 import { Search, Loader2, RefreshCcw, ShieldAlert, Zap, Globe, Cpu } from 'lucide-react';
 
 const App: React.FC = () => {
