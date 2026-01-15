@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { analyzeProductPage, proxyFetchHtml, imageToBase64 } from './services/geminiService.ts';
 import { AnalysisResult } from './types.ts';
@@ -75,7 +74,7 @@ const App: React.FC = () => {
       const validImages = base64Images.filter((i): i is { url: string; base64: string } => i !== null);
       if (validImages.length === 0) throw new Error("CORS Barrier: Site security settings prevent image extraction.");
 
-      setStatusText('Gemini 2.5 Flash is generating audit...');
+      setStatusText('Gemini AI is generating audit...');
       const analysisResult = await analyzeProductPage(url, validImages);
       
       const finalResult: AnalysisResult = {
@@ -109,9 +108,6 @@ const App: React.FC = () => {
             <div className="hidden md:flex items-center gap-1.5 text-slate-400 font-bold text-[10px] uppercase tracking-widest bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
               <Cpu className="w-3 h-3" /> System Live
             </div>
-            <a href="https://github.com" target="_blank" rel="noreferrer" className="text-[10px] sm:text-xs font-black text-indigo-600 bg-indigo-50 px-2 sm:px-3 py-1.5 rounded-full border border-indigo-100 hover:bg-indigo-100 transition-colors">
-              GitHub Page
-            </a>
           </div>
         </div>
       </header>

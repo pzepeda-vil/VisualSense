@@ -57,7 +57,7 @@ export async function analyzeProductPage(
   images: { url: string; base64: string }[]
 ): Promise<AnalysisResult> {
   const apiKey = (typeof process !== 'undefined' && process.env?.API_KEY) || '';
-  if (!apiKey) throw new Error("API Key configuration error.");
+  if (!apiKey) throw new Error("API Key is missing or invalid.");
   
   const ai = new GoogleGenAI({ apiKey });
 
@@ -69,23 +69,23 @@ export async function analyzeProductPage(
   }));
 
   const prompt = `
-    Audit the product page ${pageUrl} and the attached images.
+    Conduct a professional visual audit of ${pageUrl}. 
     
-    1. IMAGE ANALYSIS: Provide professional technical feedback for each image.
-    2. COMPETITORS: Identify 3 real direct competitors to ${pageUrl}. 
-       Explain what they are doing correctly visually (photography style, layout, UX).
-    3. WINNING FORMULA: Provide a 5-step roadmap to out-design these competitors.
+    1. ASSET ANALYSIS: Evaluate the photography quality and technical composition of the provided images.
+    2. MARKET BENCHMARKING: Identify 3 high-performing direct competitors. Detail their specific visual strengths (lighting, model choice, layout).
+    3. OPTIMIZATION: Provide a concrete 5-step roadmap to surpass these competitors visually.
     
-    Return the response strictly as JSON matching the schema.
+    Respond strictly in JSON format matching the schema.
   `;
 
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: { parts: [...imageParts, { text: prompt }] },
+      contents: [{ parts: [...imageParts, { text: prompt }] }],
       config: {
         responseMimeType: "application/json",
-        responseSchema: ANALYSIS_SCHEMA
+        responseSchema: ANALYSIS_SCHEMA,
+        temperature: 0.7
       }
     });
 
@@ -99,21 +99,21 @@ export async function analyzeProductPage(
       summary: parsed.summary || {}
     };
   } catch (error: any) {
-    throw new Error(`AI Audit Error: ${error.message}`);
+    throw new Error(`Visual Analysis Engine Failed: ${error.message}`);
   }
 }
 
 export async function proxyFetchHtml(url: string): Promise<string> {
   const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
   const response = await fetch(proxyUrl);
-  if (!response.ok) throw new Error("The target site is blocking access.");
+  if (!response.ok) throw new Error("CORS Proxy rejected the request. Target may have high security.");
   return await response.text();
 }
 
 export async function imageToBase64(url: string): Promise<string> {
   const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
   const response = await fetch(proxyUrl);
-  if (!response.ok) throw new Error(`Image Fetch Error ${response.status}`);
+  if (!response.ok) throw new Error(`Asset Retrieval Failed (${response.status})`);
   const blob = await response.blob();
   return new Promise((resolve) => {
     const reader = new FileReader();
