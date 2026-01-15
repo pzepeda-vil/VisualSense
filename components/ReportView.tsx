@@ -1,8 +1,8 @@
 
 import React, { useRef, useState } from 'react';
-import { AnalysisResult } from '../types';
+import { AnalysisResult } from '../types.ts';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from 'recharts';
-import { Download, CheckCircle2, Eye, Camera, Lightbulb, ArrowRight, Gauge, FileText, Loader2 } from 'lucide-react';
+import { Download, CheckCircle2, Eye, Camera, Lightbulb, ArrowRight, Gauge, FileText, Loader2, Trophy, Users, Zap } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -18,7 +18,7 @@ const ReportView: React.FC<ReportViewProps> = ({ result }) => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(result, null, 2));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `audit_report_${new Date().getTime()}.json`);
+    downloadAnchorNode.setAttribute("download", `visualsense_audit_${new Date().getTime()}.json`);
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
@@ -182,6 +182,45 @@ const ReportView: React.FC<ReportViewProps> = ({ result }) => {
           </div>
         </div>
 
+        {/* Competitive Landscape */}
+        <section className="bg-white rounded-3xl sm:rounded-[2.5rem] p-6 sm:p-10 shadow-2xl border border-slate-100">
+          <div className="flex flex-col sm:flex-row items-center gap-3 mb-8 sm:mb-10 text-center sm:text-left">
+            <div className="p-3 bg-indigo-100 rounded-2xl">
+              <Users className="text-indigo-600 w-6 h-6 sm:w-8 sm:h-8" />
+            </div>
+            <div>
+              <h3 className="text-2xl sm:text-3xl font-black text-slate-900">Competitive Benchmarking</h3>
+              <p className="text-xs sm:text-sm text-slate-500 font-medium">How market leaders are winning visually.</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+            {result.summary.competitors?.map((comp, idx) => (
+              <div key={idx} className="bg-slate-50/80 p-6 sm:p-8 rounded-[2rem] border border-slate-100 relative group transition-all hover:bg-white hover:shadow-xl">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-xl font-black text-slate-900 tracking-tight">{comp.name}</h4>
+                  <Trophy className="w-5 h-5 text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="mb-6">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Visual Strengths</span>
+                  <div className="space-y-2">
+                    {comp.strengths.map((s, sIdx) => (
+                      <div key={sIdx} className="flex items-start gap-2 text-xs font-bold text-slate-600">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500 mt-0.5" />
+                        {s}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="pt-4 border-t border-slate-200">
+                  <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest block mb-1">Key Takeaway</span>
+                  <p className="text-xs font-bold text-slate-800 italic leading-relaxed">"{comp.visualTakeaway}"</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* Optimization Roadmap */}
         <section className="bg-white rounded-3xl sm:rounded-[2.5rem] p-6 sm:p-10 shadow-2xl border border-slate-100">
           <div className="flex flex-col sm:flex-row items-center gap-3 mb-8 sm:mb-10 text-center sm:text-left">
@@ -251,7 +290,7 @@ const ReportView: React.FC<ReportViewProps> = ({ result }) => {
 
                   <div className="p-4 sm:p-6 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-100">
                     <p className="text-[9px] sm:text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-2 sm:mb-3 flex items-center gap-1.5">
-                      <ArrowRight className="w-3 h-3" /> Technical Optimization
+                      <Zap className="w-3 h-3" /> Technical Optimization
                     </p>
                     <p className="text-xs sm:text-sm font-bold text-slate-700 leading-relaxed italic">
                       "{img.howToImprove}"

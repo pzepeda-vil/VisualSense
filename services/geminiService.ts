@@ -32,9 +32,22 @@ const ANALYSIS_SCHEMA = {
         layoutAnalysis: { type: Type.STRING },
         marketingActionables: { type: Type.ARRAY, items: { type: Type.STRING } },
         overallAesthetic: { type: Type.STRING },
-        visualRoadmap: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Specific 5-step roadmap to professionalize the site's look." }
+        visualRoadmap: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Specific 5-step roadmap to professionalize the site's look." },
+        competitors: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              name: { type: Type.STRING },
+              strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
+              visualTakeaway: { type: Type.STRING },
+              marketPosition: { type: Type.STRING }
+            },
+            required: ["name", "strengths", "visualTakeaway", "marketPosition"]
+          }
+        }
       },
-      required: ["brandConsistency", "creativeStyle", "typographyNotes", "layoutAnalysis", "marketingActionables", "overallAesthetic", "visualRoadmap"]
+      required: ["brandConsistency", "creativeStyle", "typographyNotes", "layoutAnalysis", "marketingActionables", "overallAesthetic", "visualRoadmap", "competitors"]
     }
   },
   required: ["images", "summary"]
@@ -55,15 +68,19 @@ export async function analyzeProductPage(
   }));
 
   const prompt = `
-    Role: Senior Art Director & E-commerce Strategy Expert.
-    Task: Conduct a high-fidelity visual audit of the provided assets from ${pageUrl}.
+    Role: Senior Art Director & Competitive Intelligence Expert.
+    Task: Conduct a high-fidelity visual audit of ${pageUrl} and its industry position.
     
+    Instructions:
+    1. Analyze the provided images for technical photography and design patterns.
+    2. Identify 3 direct or aspirational competitors in the same niche as ${pageUrl}.
+    3. For each competitor, analyze their "Visual Winning Formula" (what they are doing right aesthetically).
+    4. Provide specific photography/design benchmarks.
+
     Audit Guidelines for REAL DATA:
-    1. For "Lighting", describe the technical setup (e.g., 'Soft-box 45-degree key light', 'Natural overcast lighting').
-    2. For "Composition", mention specific photographic rules (e.g., 'Rule of thirds compliant', 'Central focus with shallow depth of field').
-    3. For "How to Improve", provide one specific technical change (e.g., 'Increase contrast in the mid-tones to make the texture pop' or 'Use a wider aperture to blur the background distracting elements').
-    4. For "Visual Roadmap", provide 5 sequential, actionable steps the merchant should take in the next 30 days to increase conversion through design.
-    5. The "Overall Aesthetic" should capture the emotional value proposition.
+    - Lighting: Describe technical setup (e.g., 'Rembrandt lighting', 'High-key studio').
+    - Competitors: Must be real, recognizable brands in the same category.
+    - Strengths: Focus on visual UI/UX and photography strategy.
 
     Return the response as JSON matching the provided schema.
   `;
@@ -108,7 +125,7 @@ export async function proxyFetchHtml(url: string): Promise<string> {
     if (!response.ok) throw new Error(`Status ${response.status}: Site is blocking the audit.`);
     return await response.text();
   } catch (error: any) {
-    throw new Error("Connection Blocked: Please ensure you aren't using a VPN or strict ad-blocker that interferes with the proxy.");
+    throw new Error("Connection Blocked: The target site may be blocking remote access.");
   }
 }
 

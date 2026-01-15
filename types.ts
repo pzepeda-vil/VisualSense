@@ -13,6 +13,13 @@ export interface ImageAnalysis {
   howToImprove: string;
 }
 
+export interface CompetitorInsight {
+  name: string;
+  strengths: string[];
+  visualTakeaway: string;
+  marketPosition: string;
+}
+
 export interface SiteSummary {
   brandConsistency: number;
   creativeStyle: string;
@@ -21,6 +28,7 @@ export interface SiteSummary {
   marketingActionables: string[];
   overallAesthetic: string;
   visualRoadmap: string[];
+  competitors: CompetitorInsight[];
 }
 
 export interface AnalysisResult {
