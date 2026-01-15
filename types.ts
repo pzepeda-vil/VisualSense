@@ -3,6 +3,7 @@ export interface ImageAnalysis {
   id: string;
   url: string;
   base64?: string;
+  mimeType?: string;
   dominantColors: string[];
   composition: string;
   lighting: string;

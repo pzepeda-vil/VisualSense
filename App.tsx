@@ -63,16 +63,16 @@ const App: React.FC = () => {
       const base64Images = await Promise.all(
         uniqueImages.map(async (u) => {
           try {
-            const b64 = await imageToBase64(u);
-            return { url: u, base64: b64 };
+            const result = await imageToBase64(u);
+            return { url: u, base64: result.base64, mimeType: result.mimeType };
           } catch (e) {
             return null;
           }
         })
       );
 
-      const validImages = base64Images.filter((i): i is { url: string; base64: string } => i !== null);
-      if (validImages.length === 0) throw new Error("CORS Barrier: Site security settings prevent image extraction.");
+      const validImages = base64Images.filter((i): i is { url: string; base64: string; mimeType: string } => i !== null);
+      if (validImages.length === 0) throw new Error("CORS Barrier or SVG Only detected: Site security settings prevent high-res image extraction for audit.");
 
       setStatusText('Gemini AI is generating audit...');
       const analysisResult = await analyzeProductPage(url, validImages);
@@ -81,7 +81,9 @@ const App: React.FC = () => {
         ...analysisResult,
         images: analysisResult.images.map((img, idx) => ({
           ...img,
-          base64: validImages[idx]?.base64
+          url: validImages[idx]?.url || img.url,
+          base64: validImages[idx]?.base64,
+          mimeType: validImages[idx]?.mimeType
         }))
       };
 
@@ -102,7 +104,7 @@ const App: React.FC = () => {
             <div className="bg-indigo-600 p-1.5 sm:p-2 rounded-xl shadow-lg shadow-indigo-100">
               <Zap className="text-white w-4 h-4 sm:w-5 sm:h-5 fill-white" />
             </div>
-            <h1 className="font-black text-lg sm:text-xl tracking-tighter">VISUAL<span className="text-indigo-600 underline decoration-indigo-200 underline-offset-4">SENSE</span></h1>
+            <h1 className="font-black text-lg sm:text-xl tracking-tighter text-black">VISUAL<span className="text-indigo-600 underline decoration-indigo-200 underline-offset-4">SENSE</span></h1>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="hidden md:flex items-center gap-1.5 text-slate-400 font-bold text-[10px] uppercase tracking-widest bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
@@ -135,7 +137,7 @@ const App: React.FC = () => {
                 type="url"
                 required
                 placeholder="https://nike.com/product-url"
-                className="block w-full sm:pl-16 sm:pr-44 py-4 sm:py-6 bg-white border-2 border-slate-100 rounded-2xl sm:rounded-[2.5rem] shadow-xl sm:shadow-2xl shadow-indigo-200/20 focus:ring-8 sm:focus:ring-12 focus:ring-indigo-600/5 focus:border-indigo-600 text-lg sm:text-xl transition-all outline-none font-medium placeholder:text-slate-300 text-center sm:text-left"
+                className="block w-full sm:pl-16 sm:pr-44 py-4 sm:py-6 bg-white border-2 border-slate-100 rounded-2xl sm:rounded-[2.5rem] shadow-xl sm:shadow-2xl shadow-indigo-200/20 focus:ring-8 sm:focus:ring-12 focus:ring-indigo-600/5 focus:border-indigo-600 text-lg sm:text-xl text-black transition-all outline-none font-bold placeholder:text-slate-300 text-center sm:text-left"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
               />
@@ -166,7 +168,7 @@ const App: React.FC = () => {
                 <ShieldAlert className="w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0" />
               </div>
               <div className="flex-1 text-center sm:text-left">
-                <p className="font-black text-2xl sm:text-3xl mb-2 tracking-tighter">Access Denied</p>
+                <p className="font-black text-2xl mb-1 tracking-tighter uppercase">Audit Blocked</p>
                 <p className="text-base sm:text-lg leading-relaxed opacity-90 font-medium">{error}</p>
                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8">
                    <button 

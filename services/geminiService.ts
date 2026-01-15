@@ -54,7 +54,7 @@ const ANALYSIS_SCHEMA = {
 
 export async function analyzeProductPage(
   pageUrl: string, 
-  images: { url: string; base64: string }[]
+  images: { url: string; base64: string; mimeType: string }[]
 ): Promise<AnalysisResult> {
   const apiKey = (typeof process !== 'undefined' && process.env?.API_KEY) || '';
   if (!apiKey) throw new Error("API Key is missing or invalid.");
@@ -64,7 +64,7 @@ export async function analyzeProductPage(
   const imageParts = images.map((img) => ({
     inlineData: {
       data: img.base64,
-      mimeType: "image/jpeg"
+      mimeType: img.mimeType || "image/jpeg"
     }
   }));
 
@@ -110,14 +110,24 @@ export async function proxyFetchHtml(url: string): Promise<string> {
   return await response.text();
 }
 
-export async function imageToBase64(url: string): Promise<string> {
+export async function imageToBase64(url: string): Promise<{ base64: string; mimeType: string }> {
   const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
   const response = await fetch(proxyUrl);
   if (!response.ok) throw new Error(`Asset Retrieval Failed (${response.status})`);
   const blob = await response.blob();
+  
+  // Explicitly check for supported types to avoid SVG 400 errors
+  const supportedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+  if (!supportedMimes.includes(blob.type)) {
+    throw new Error(`Unsupported image type: ${blob.type}. SVGs are not supported for visual audits.`);
+  }
+
   return new Promise((resolve) => {
     const reader = new FileReader();
-    reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+    reader.onloadend = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      resolve({ base64, mimeType: blob.type });
+    };
     reader.readAsDataURL(blob);
   });
 }

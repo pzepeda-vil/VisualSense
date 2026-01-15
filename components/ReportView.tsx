@@ -43,7 +43,7 @@ const ReportView: React.FC<ReportViewProps> = ({ result }) => {
 
   const scoreData = [
     { name: 'Consistency', value: result.summary.brandConsistency },
-    { name: 'Avg Quality', value: Math.round(result.images.reduce((acc, img) => acc + img.qualityScore, 0) / result.images.length) },
+    { name: 'Avg Quality', value: Math.round(result.images.reduce((acc, img) => acc + img.qualityScore, 0) / Math.max(result.images.length, 1)) },
   ];
 
   return (
@@ -109,7 +109,7 @@ const ReportView: React.FC<ReportViewProps> = ({ result }) => {
           <div className="flex items-center gap-3 mb-10">
             <div className="p-3 bg-indigo-100 rounded-2xl text-indigo-600"><Users className="w-8 h-8" /></div>
             <div>
-              <h3 className="text-3xl font-black text-slate-900">Competitive Benchmarking</h3>
+              <h3 className="text-3xl font-black text-slate-900 tracking-tight">Competitive Benchmarking</h3>
               <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">Niche Competitors & Visual Tactics</p>
             </div>
           </div>
@@ -152,13 +152,17 @@ const ReportView: React.FC<ReportViewProps> = ({ result }) => {
         <section>
           <div className="flex items-center gap-3 mb-8 px-4">
             <Camera className="text-indigo-600 w-8 h-8" />
-            <h3 className="text-3xl font-black text-slate-900">Asset Audit</h3>
+            <h3 className="text-3xl font-black text-slate-900 tracking-tight">Asset Audit</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             {result.images.map((img, idx) => (
               <div key={idx} className="bg-white rounded-[2rem] overflow-hidden shadow-xl border border-slate-100 flex flex-col group">
                 <div className="relative aspect-video overflow-hidden bg-slate-200">
-                  <img src={img.base64 ? `data:image/jpeg;base64,${img.base64}` : img.url} className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105" alt="Audit Target" />
+                  <img 
+                    src={img.base64 ? `data:${img.mimeType || 'image/jpeg'};base64,${img.base64}` : img.url} 
+                    className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105" 
+                    alt="Audit Target" 
+                  />
                   <div className="absolute top-6 left-6 bg-white/95 backdrop-blur px-4 py-2 rounded-2xl text-xs font-black text-indigo-600 border border-white">Asset #{idx + 1}</div>
                 </div>
                 <div className="p-8 space-y-8">
