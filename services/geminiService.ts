@@ -57,9 +57,7 @@ export async function analyzeProductPage(
   images: { url: string; base64: string }[]
 ): Promise<AnalysisResult> {
   const apiKey = (typeof process !== 'undefined' && process.env?.API_KEY) || '';
-  if (!apiKey) {
-    throw new Error("Missing API Key. Check your environment settings.");
-  }
+  if (!apiKey) throw new Error("API Key configuration error.");
   
   const ai = new GoogleGenAI({ apiKey });
 
@@ -71,15 +69,14 @@ export async function analyzeProductPage(
   }));
 
   const prompt = `
-    Audit the product page ${pageUrl} based on the attached visual assets.
+    Audit the product page ${pageUrl} and the attached images.
     
-    1. IMAGE ANALYSIS: For each image, provide technical photography feedback.
-    2. COMPETITIVE ANALYSIS: Identify 3 real-world direct competitors for ${pageUrl}. 
-       Explain what these competitors are doing right visually (their "Winning Formula").
-    3. STRATEGY: Create a 5-step roadmap to outperform them.
+    1. IMAGE ANALYSIS: Provide professional technical feedback for each image.
+    2. COMPETITORS: Identify 3 real direct competitors to ${pageUrl}. 
+       Explain what they are doing correctly visually (photography style, layout, UX).
+    3. WINNING FORMULA: Provide a 5-step roadmap to out-design these competitors.
     
-    Style of response: Professional, data-driven, art-director level technical terminology.
-    Return JSON format strictly following the provided schema.
+    Return the response strictly as JSON matching the schema.
   `;
 
   try {
@@ -93,44 +90,34 @@ export async function analyzeProductPage(
     });
 
     const parsed = JSON.parse(response.text || '{}');
-    const analyzedImages = (parsed.images || []).map((aiImg: any, idx: number) => ({
-      ...aiImg,
-      url: images[idx]?.url || ''
-    }));
-
     return {
       url: pageUrl,
-      images: analyzedImages,
+      images: (parsed.images || []).map((aiImg: any, idx: number) => ({
+        ...aiImg,
+        url: images[idx]?.url || ''
+      })),
       summary: parsed.summary || {}
     };
   } catch (error: any) {
-    throw new Error(`AI Analysis Failed: ${error.message}`);
+    throw new Error(`AI Audit Error: ${error.message}`);
   }
 }
 
 export async function proxyFetchHtml(url: string): Promise<string> {
   const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-  try {
-    const response = await fetch(proxyUrl);
-    if (!response.ok) throw new Error(`Status ${response.status}: Target host is blocking crawler access.`);
-    return await response.text();
-  } catch (err) {
-    throw new Error("Proxy connection failed. The target site may have robust CORS protection.");
-  }
+  const response = await fetch(proxyUrl);
+  if (!response.ok) throw new Error("The target site is blocking access.");
+  return await response.text();
 }
 
 export async function imageToBase64(url: string): Promise<string> {
   const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-  try {
-    const response = await fetch(proxyUrl);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const blob = await response.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
-      reader.readAsDataURL(blob);
-    });
-  } catch (err) {
-    throw new Error(`Failed to fetch image: ${url}`);
-  }
+  const response = await fetch(proxyUrl);
+  if (!response.ok) throw new Error(`Image Fetch Error ${response.status}`);
+  const blob = await response.blob();
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+    reader.readAsDataURL(blob);
+  });
 }

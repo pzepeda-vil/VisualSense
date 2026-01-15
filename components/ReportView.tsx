@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { AnalysisResult } from '../types.ts';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Download, CheckCircle2, Eye, Camera, Lightbulb, FileText, Loader2, Trophy, Users, Zap, Target } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -15,12 +15,12 @@ const ReportView: React.FC<ReportViewProps> = ({ result }) => {
 
   const downloadReport = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(result, null, 2));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `audit_${new Date().getTime()}.json`);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
+    const link = document.createElement('a');
+    link.setAttribute("href", dataStr);
+    link.setAttribute("download", "audit_data.json");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   };
 
   const downloadPdf = async () => {
@@ -35,7 +35,7 @@ const ReportView: React.FC<ReportViewProps> = ({ result }) => {
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`VisualSense_Audit.pdf`);
     } catch (err) {
-      alert("PDF failed. Use JSON export.");
+      alert("PDF generation failed. Use JSON export.");
     } finally {
       setIsGeneratingPdf(false);
     }
@@ -47,32 +47,30 @@ const ReportView: React.FC<ReportViewProps> = ({ result }) => {
   ];
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Action Header */}
+    <div className="space-y-12 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-200">
+          <div className="p-3 bg-indigo-600 rounded-2xl">
             <Eye className="text-white w-6 h-6" />
           </div>
           <div>
             <h3 className="text-xl font-black text-slate-900 leading-tight">Optimization Report</h3>
-            <p className="text-sm text-slate-400 font-medium truncate max-w-[200px]">Benchmark: {new URL(result.url).hostname}</p>
+            <p className="text-sm text-slate-400 font-medium">Market Benchmarking for {new URL(result.url).hostname}</p>
           </div>
         </div>
         <div className="flex gap-2 w-full md:w-auto">
-          <button onClick={downloadReport} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-slate-100 text-slate-700 rounded-2xl text-xs font-bold hover:bg-slate-200 transition-all">
+          <button onClick={downloadReport} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-slate-100 text-slate-700 rounded-2xl text-xs font-bold hover:bg-slate-200">
             <Download className="w-4 h-4" /> JSON
           </button>
-          <button onClick={downloadPdf} disabled={isGeneratingPdf} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-bold hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-xl shadow-indigo-100">
+          <button onClick={downloadPdf} disabled={isGeneratingPdf} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-bold hover:bg-indigo-700 disabled:opacity-50 shadow-xl shadow-indigo-100">
             {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />} PDF
           </button>
         </div>
       </div>
 
-      <div ref={reportRef} className="space-y-12 p-1">
-        {/* DNA Section */}
+      <div ref={reportRef} className="space-y-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 bg-white rounded-[2.5rem] p-10 shadow-2xl border border-slate-100 relative overflow-hidden">
+          <div className="lg:col-span-2 bg-white rounded-[2.5rem] p-10 shadow-2xl border border-slate-100 relative">
             <div className="absolute top-0 right-0 p-4 opacity-5"><Target size={120} /></div>
             <h3 className="text-2xl font-black text-slate-900 mb-8 relative z-10">Visual DNA Assessment</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10 relative z-10">
@@ -98,7 +96,7 @@ const ReportView: React.FC<ReportViewProps> = ({ result }) => {
             </div>
           </div>
           <div className="bg-indigo-600 rounded-[2.5rem] p-10 shadow-2xl text-white">
-            <h3 className="text-xl font-black mb-6 flex items-center gap-3"><CheckCircle2 className="w-6 h-6" /> Top Actionables</h3>
+            <h3 className="text-xl font-black mb-6 flex items-center gap-3"><CheckCircle2 className="w-6 h-6" /> Action Items</h3>
             <ul className="space-y-4">
               {result.summary.marketingActionables.map((item, idx) => (
                 <li key={idx} className="flex gap-4 text-xs font-medium leading-relaxed bg-white/10 p-4 rounded-2xl border border-white/10">{item}</li>
@@ -107,30 +105,28 @@ const ReportView: React.FC<ReportViewProps> = ({ result }) => {
           </div>
         </div>
 
-        {/* Competitor Analysis Card */}
         <section className="bg-white rounded-[2.5rem] p-10 shadow-2xl border border-slate-100">
           <div className="flex items-center gap-3 mb-10">
             <div className="p-3 bg-indigo-100 rounded-2xl text-indigo-600"><Users className="w-8 h-8" /></div>
             <div>
-              <h3 className="text-3xl font-black text-slate-900">Market Benchmarking</h3>
-              <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">Competitor Visual Strengths</p>
+              <h3 className="text-3xl font-black text-slate-900">Competitive Benchmarking</h3>
+              <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">Niche Competitors & Visual Tactics</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {result.summary.competitors?.map((comp, idx) => (
-              <div key={idx} className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100 hover:bg-white hover:shadow-xl transition-all group">
+              <div key={idx} className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100 hover:bg-white transition-all group shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="text-xl font-black text-slate-900 tracking-tight">{comp.name}</h4>
                   <Trophy className="w-5 h-5 text-amber-400 opacity-20 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <div className="space-y-3 mb-6">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Winning Strategies</span>
+                <div className="space-y-2 mb-6">
                   {comp.strengths.map((s, si) => (
-                    <div key={si} className="flex items-center gap-2 text-[11px] font-bold text-slate-600 bg-white/80 px-3 py-2 rounded-xl border border-slate-100">{s}</div>
+                    <div key={si} className="flex items-center gap-2 text-[10px] font-bold text-slate-600 bg-white px-3 py-1.5 rounded-xl border border-slate-100">{s}</div>
                   ))}
                 </div>
                 <div className="pt-6 border-t border-slate-200">
-                  <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest block mb-2">Visual Takeaway</span>
+                  <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest block mb-2">Visual Strategy</span>
                   <p className="text-xs font-bold text-slate-800 italic leading-relaxed">"{comp.visualTakeaway}"</p>
                 </div>
               </div>
@@ -138,11 +134,10 @@ const ReportView: React.FC<ReportViewProps> = ({ result }) => {
           </div>
         </section>
 
-        {/* Roadmap Section */}
         <section className="bg-white rounded-[2.5rem] p-10 shadow-2xl border border-slate-100">
           <div className="flex items-center gap-3 mb-10">
             <div className="p-3 bg-emerald-100 rounded-2xl"><Lightbulb className="text-emerald-600 w-8 h-8" /></div>
-            <h3 className="text-3xl font-black text-slate-900">Growth Roadmap</h3>
+            <h3 className="text-3xl font-black text-slate-900">Optimization Roadmap</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {result.summary.visualRoadmap.map((step, idx) => (
@@ -154,18 +149,17 @@ const ReportView: React.FC<ReportViewProps> = ({ result }) => {
           </div>
         </section>
 
-        {/* Asset Deep Dive */}
         <section>
           <div className="flex items-center gap-3 mb-8 px-4">
             <Camera className="text-indigo-600 w-8 h-8" />
-            <h3 className="text-3xl font-black text-slate-900">Asset Deep Dive</h3>
+            <h3 className="text-3xl font-black text-slate-900">Asset Audit</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             {result.images.map((img, idx) => (
               <div key={idx} className="bg-white rounded-[2rem] overflow-hidden shadow-xl border border-slate-100 flex flex-col group">
                 <div className="relative aspect-video overflow-hidden bg-slate-200">
                   <img src={img.base64 ? `data:image/jpeg;base64,${img.base64}` : img.url} className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105" alt="Audit Target" />
-                  <div className="absolute top-6 left-6 bg-white/95 backdrop-blur px-4 py-2 rounded-2xl text-xs font-black text-indigo-600 shadow-xl border border-white">Asset #{idx + 1}</div>
+                  <div className="absolute top-6 left-6 bg-white/95 backdrop-blur px-4 py-2 rounded-2xl text-xs font-black text-indigo-600 border border-white">Asset #{idx + 1}</div>
                 </div>
                 <div className="p-8 space-y-8">
                   <div className="grid grid-cols-2 gap-6">
