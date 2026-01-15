@@ -2,12 +2,12 @@
 export interface ImageAnalysis {
   id: string;
   url: string;
-  base64?: string; // Storing the data for PDF generation
+  base64?: string;
   dominantColors: string[];
   composition: string;
   lighting: string;
   mood: string;
-  aesthetic: 'Professional' | 'Casual' | 'Artistic' | 'Minimalist' | string;
+  aesthetic: string;
   qualityScore: number;
   description: string;
   howToImprove: string;
@@ -35,9 +35,4 @@ export interface AnalysisResult {
   url: string;
   images: ImageAnalysis[];
   summary: SiteSummary;
-}
-
-export interface ScrapedImage {
-  url: string;
-  alt: string;
 }
