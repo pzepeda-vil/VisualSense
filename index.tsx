@@ -5,7 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { 
   Search, Loader2, ShieldAlert, Zap, Globe, Cpu, 
   CheckCircle2, Eye, Lightbulb, FileText, 
-  Trophy, Users, Target, Camera
+  Trophy, Users, Target, Camera, RefreshCcw
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -123,8 +123,9 @@ async function fetchAssetAsBase64(url: string): Promise<ImageAsset | null> {
     if (!response.ok) return null;
     
     const blob = await response.blob();
+    // CRITICAL: Block SVGs to prevent 400 errors in Gemini API
     const supportedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'image/avif'];
-    if (!supportedMimes.includes(blob.type)) return null;
+    if (blob.type.includes('svg') || !supportedMimes.includes(blob.type)) return null;
 
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -194,7 +195,7 @@ const ReportView: React.FC<{ result: AnalysisResult }> = ({ result }) => {
               <div className="space-y-6">
                 <div className="p-6 bg-indigo-50 rounded-3xl border border-indigo-100">
                   <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest block mb-1">Archetype</span>
-                  <p className="text-2xl font-black text-indigo-900">{result.summary.creativeStyle}</p>
+                  <p className="text-2xl font-black text-indigo-900 leading-tight">{result.summary.creativeStyle}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100"><span className="text-[10px] font-black text-slate-400 uppercase block">Brand Sync</span><p className="text-xl font-black text-slate-900">{result.summary.brandConsistency}%</p></div>
@@ -229,7 +230,7 @@ const ReportView: React.FC<{ result: AnalysisResult }> = ({ result }) => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {result.summary.competitors?.map((comp, idx) => (
-              <div key={idx} className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100 hover:bg-indigo-50/30 transition-all">
+              <div key={idx} className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100 hover:bg-indigo-50/30 transition-all shadow-sm">
                 <h4 className="text-xl font-black text-slate-900 mb-4 tracking-tight leading-tight">{comp.name}</h4>
                 <div className="space-y-2 mb-6">
                   {comp.strengths.map((s, si) => (
@@ -269,7 +270,11 @@ const ReportView: React.FC<{ result: AnalysisResult }> = ({ result }) => {
             {result.images.map((img, idx) => (
               <div key={idx} className="bg-white rounded-[2rem] overflow-hidden shadow-xl border border-slate-100 flex flex-col group">
                 <div className="relative aspect-video overflow-hidden bg-slate-200">
-                  <img src={img.base64 ? `data:${img.mimeType || 'image/jpeg'};base64,${img.base64}` : img.url} className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105" alt="Audit Target" />
+                  <img 
+                    src={img.base64 ? `data:${img.mimeType || 'image/jpeg'};base64,${img.base64}` : img.url} 
+                    className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105" 
+                    alt="Audit Target" 
+                  />
                   <div className="absolute top-6 left-6 bg-white/95 backdrop-blur px-4 py-2 rounded-2xl text-xs font-black text-indigo-600 border border-white">Asset #{idx + 1}</div>
                 </div>
                 <div className="p-8 space-y-8">
@@ -291,7 +296,7 @@ const ReportView: React.FC<{ result: AnalysisResult }> = ({ result }) => {
   );
 };
 
-// --- APP ---
+// --- MAIN APP ---
 const App: React.FC = () => {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -303,6 +308,7 @@ const App: React.FC = () => {
     e.preventDefault();
     if (!url) return;
     setLoading(true); setError(null); setResult(null); setStatusText('Accessing domain...');
+    
     try {
       const targetBase = new URL(url).origin;
       const html = await proxyFetchHtml(url);
@@ -310,16 +316,35 @@ const App: React.FC = () => {
       
       setStatusText('Identifying visual assets...');
       const candidates: string[] = [];
+      
+      // 1. OG Images
       const ogImg = doc.querySelector('meta[property="og:image"]')?.getAttribute('content');
       if (ogImg) candidates.push(ogImg);
       
+      // 2. Picture tags and Sources
+      Array.from(doc.querySelectorAll('source')).forEach(s => {
+        const srcset = s.getAttribute('srcset');
+        if (srcset) {
+          const sets = srcset.split(',').map(part => part.trim().split(' ')[0]);
+          candidates.push(sets[sets.length - 1]);
+        }
+      });
+
+      // 3. Img tags (standard and lazy-load)
       Array.from(doc.querySelectorAll('img')).forEach(img => {
         const src = img.getAttribute('src');
-        const dataSrc = img.getAttribute('data-src') || img.getAttribute('data-lazy-src');
-        const foundUrl = dataSrc || src;
+        const dataSrc = img.getAttribute('data-src') || img.getAttribute('data-lazy-src') || img.getAttribute('data-original');
+        const srcset = img.getAttribute('srcset');
+        
+        let foundUrl = dataSrc || src;
+        if (srcset) {
+          const parts = srcset.split(',').map(p => p.trim().split(' ')[0]);
+          foundUrl = parts[parts.length - 1]; 
+        }
         if (foundUrl) candidates.push(foundUrl);
       });
 
+      // Filtering and Resolution
       const resolvedUrls = Array.from(new Set(candidates))
         .map(u => {
           try { return new URL(u, targetBase).href; } catch { return null; }
@@ -327,18 +352,20 @@ const App: React.FC = () => {
         .filter((u): u is string => {
           if (!u) return false;
           const low = u.toLowerCase();
-          return u.startsWith('http') && !low.includes('icon') && !low.includes('logo');
+          // STRICT SVG FILTERING: Explicitly block .svg and base64 svgs to avoid Gemini 400 errors
+          const isSvg = low.endsWith('.svg') || low.includes('.svg?') || low.includes('image/svg+xml') || low.includes('data:image/svg+xml');
+          return u.startsWith('http') && !low.includes('icon') && !low.includes('logo') && !isSvg;
         })
         .slice(0, 4);
 
-      if (resolvedUrls.length === 0) throw new Error("No accessible product images detected.");
+      if (resolvedUrls.length === 0) throw new Error("No compatible product images (JPEG/PNG/WebP) detected. The site might be using SVGs only or blocking access.");
       
       setStatusText('Encoding design patterns...');
       const assetTasks = resolvedUrls.map(i => fetchAssetAsBase64(i));
       const assetResults = await Promise.all(assetTasks);
       const validAssets = assetResults.filter((a): a is ImageAsset => a !== null);
 
-      if (validAssets.length === 0) throw new Error("Could not extract supported image data.");
+      if (validAssets.length === 0) throw new Error("Could not extract supported image data. SVGs were detected but are incompatible with the audit engine.");
 
       setStatusText('Gemini AI is auditing design...');
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
@@ -348,11 +375,18 @@ const App: React.FC = () => {
       
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: [{ parts: [...imageParts, { text: `Audit ${url}. Response in JSON.` }] }],
+        contents: [{ 
+          parts: [
+            ...imageParts, 
+            { text: `Audit ${url} for visual consistency, lighting, and benchmarking against 3 competitors. Respond in JSON.` }
+          ] 
+        }],
         config: { responseMimeType: "application/json", responseSchema: ANALYSIS_SCHEMA }
       });
 
-      const parsed = JSON.parse(response.text || '{}');
+      if (!response.text) throw new Error("AI engine failure.");
+      const parsed = JSON.parse(response.text);
+      
       const finalImages = (parsed.images || []).map((aiImg: any, idx: number) => ({
         ...aiImg,
         url: validAssets[idx]?.url || '',
@@ -373,12 +407,12 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-slate-50 pb-20 selection:bg-indigo-100">
       <header className="bg-white/80 backdrop-blur-md border-b h-16 flex items-center px-6 sticky top-0 z-50">
         <Zap className="text-indigo-600 mr-2 w-5 h-5 fill-indigo-600" />
-        <h1 className="font-black text-xl tracking-tighter text-black">VISUAL<span className="text-indigo-600">SENSE</span></h1>
+        <h1 className="font-black text-xl tracking-tighter text-slate-900">VISUAL<span className="text-indigo-600">SENSE</span></h1>
       </header>
 
       <main className="max-w-6xl mx-auto px-6 pt-16">
         <div className="text-center mb-16 max-w-2xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 border border-indigo-100">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 border border-indigo-100 shadow-sm">
             <Globe className="w-3 h-3" /> Professional Visual Auditor
           </div>
           <h2 className="text-5xl font-black text-slate-900 mb-6 tracking-tight leading-[0.9]">Smart Creative Strategy.</h2>
@@ -387,7 +421,14 @@ const App: React.FC = () => {
 
         <form onSubmit={handleAnalyze} className="max-w-3xl mx-auto mb-20 px-2 sm:px-0">
           <div className="relative group">
-            <input type="url" required placeholder="https://nike.com/product-page" className="w-full px-8 py-6 bg-white border-2 border-slate-100 rounded-[2.5rem] shadow-2xl shadow-indigo-200/20 text-xl text-black placeholder:text-slate-300 outline-none focus:border-indigo-600 transition-all font-bold" value={url} onChange={e => setUrl(e.target.value)} />
+            <input 
+              type="url" 
+              required 
+              placeholder="https://nike.com/product-page" 
+              className="w-full px-8 py-6 bg-white border-2 border-slate-100 rounded-[2.5rem] shadow-2xl shadow-indigo-200/20 text-xl text-black placeholder:text-slate-300 outline-none focus:border-indigo-600 transition-all font-bold" 
+              value={url} 
+              onChange={e => setUrl(e.target.value)} 
+            />
             <button type="submit" disabled={loading} className="absolute right-3 top-3 bottom-3 px-10 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-[2rem] disabled:bg-slate-300 transition-all active:scale-95 shadow-lg shadow-indigo-600/30">
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Audit Design'}
             </button>
@@ -398,7 +439,16 @@ const App: React.FC = () => {
         {error && (
           <div className="max-w-3xl mx-auto mb-12 p-8 bg-rose-50 border border-rose-100 rounded-[2.5rem] flex gap-6 text-rose-700 items-start animate-in fade-in slide-in-from-top-4">
             <ShieldAlert className="w-8 h-8 flex-shrink-0" />
-            <div><p className="font-black text-2xl mb-1 tracking-tight">Audit Blocked</p><p className="text-sm font-bold opacity-80 leading-relaxed">{error}</p></div>
+            <div className="flex-1">
+              <p className="font-black text-2xl mb-1 tracking-tight uppercase">Audit Blocked</p>
+              <p className="text-sm font-bold opacity-80 leading-relaxed">{error}</p>
+              <button 
+                onClick={() => { setUrl(''); setError(null); }}
+                className="mt-4 flex items-center gap-2 text-xs font-black text-rose-600 bg-white px-4 py-2 rounded-xl border border-rose-200 shadow-sm hover:bg-rose-100 transition-colors"
+              >
+                <RefreshCcw className="w-3 h-3" /> Clear and Retry
+              </button>
+            </div>
           </div>
         )}
 
